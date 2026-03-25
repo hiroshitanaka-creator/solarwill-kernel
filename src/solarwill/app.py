@@ -154,6 +154,9 @@ def normalize_payload(
         text = str(value).strip() if value is not None else ""
         return text or default
 
+    if not isinstance(raw, dict):
+        return fallback
+
     return {
         "options": list_of_str(raw.get("options"), fallback["options"]),
         "recommendation": str_value(raw.get("recommendation"), fallback["recommendation"]),
