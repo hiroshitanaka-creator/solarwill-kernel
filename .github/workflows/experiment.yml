@@ -1,0 +1,52 @@
+name: Experiment Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      question:
+        description: "試したい問いを入れてください"
+        required: true
+        default: "転職するべきか悩んでいる"
+
+permissions:
+  contents: read
+
+jobs:
+  run-gemini:
+    runs-on: ubuntu-latest
+
+    env:
+      SOLARWILL_BACKEND: gemini
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      SOLARWILL_SAVE_TRACE: "true"
+      SOLARWILL_TRACE_DIR: artifacts/traces
+      SOLARWILL_PROMPT_VERSION: "v0.1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Run SolarWill
+        run: |
+          mkdir -p artifacts
+          python -m solarwill run "${{ inputs.question }}" --pretty > artifacts/result.json
+
+      - name: Show result in log
+        run: |
+          cat artifacts/result.json
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: solarwill-run-${{ github.run_number }}
+          path: artifacts/
