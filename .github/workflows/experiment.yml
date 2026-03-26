@@ -11,9 +11,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: experiment-run-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   run-gemini:
+    name: run-gemini
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     env:
       SOLARWILL_BACKEND: gemini
@@ -31,21 +37,64 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install package
+      - name: Validate Gemini secret is configured
+        shell: bash
         run: |
+          set -euo pipefail
+          if [ -z "${GEMINI_API_KEY:-}" ]; then
+            echo "GEMINI_API_KEY secret is missing or empty."
+            exit 1
+          fi
+
+      - name: Install package
+        shell: bash
+        run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
           pip install -e .
 
       - name: Run SolarWill
+        shell: bash
         run: |
+          set -euo pipefail
           mkdir -p artifacts
-          python -m solarwill run "${{ inputs.question }}" --pretty > artifacts/result.json
+          python -m solarwill run "${{ inputs.question }}" --pretty | tee artifacts/result.json
 
       - name: Show result in log
+        shell: bash
         run: |
+          set -euo pipefail
           cat artifacts/result.json
 
+      - name: Fail if Gemini fallback happened
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("artifacts/result.json")
+          payload = json.loads(path.read_text(encoding="utf-8"))
+          trace = payload.get("trace", {})
+
+          requested = trace.get("backend_requested")
+          used = trace.get("backend_used")
+          notes = trace.get("notes", [])
+
+          print("backend_requested =", requested)
+          print("backend_used      =", used)
+          print("notes             =", notes)
+
+          if requested != "gemini":
+              raise SystemExit(f"Unexpected backend_requested={requested!r}; expected 'gemini'.")
+
+          if used != "gemini":
+              raise SystemExit("Gemini fallback detected. See trace.notes above.")
+          PY
+
       - name: Upload artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: solarwill-run-${{ github.run_number }}
