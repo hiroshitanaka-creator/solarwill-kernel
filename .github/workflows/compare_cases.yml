@@ -1,0 +1,87 @@
+name: Compare Fixed Cases
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: compare-fixed-cases-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  compare:
+    name: compare-${{ matrix.backend }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      fail-fast: false
+      matrix:
+        backend:
+          - stub
+          - gemini
+
+    env:
+      SOLARWILL_BACKEND: ${{ matrix.backend }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      SOLARWILL_SAVE_TRACE: "true"
+      SOLARWILL_TRACE_DIR: artifacts/${{ matrix.backend }}/traces
+      SOLARWILL_PROMPT_VERSION: "v0.1"
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Print selected backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "SOLARWILL_BACKEND=${SOLARWILL_BACKEND}"
+
+      - name: Validate Gemini secret is configured
+        if: ${{ matrix.backend == 'gemini' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -z "${GEMINI_API_KEY:-}" ]; then
+            echo "GEMINI_API_KEY secret is missing or empty."
+            exit 1
+          fi
+
+      - name: Install package
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Run fixed cases
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/${{ matrix.backend }}
+          python scripts/run_cases.py \
+            --cases-file tests/fixtures/sample_cases.json \
+            --output-file artifacts/${{ matrix.backend }}/case_results.json \
+            --require-requested-backend-for-non-blocked
+
+      - name: Show summary in log
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat artifacts/${{ matrix.backend }}/case_results.json
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compare-${{ matrix.backend }}-${{ github.run_number }}
+          path: artifacts/${{ matrix.backend }}/
