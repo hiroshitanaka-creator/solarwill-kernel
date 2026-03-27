@@ -1,13 +1,43 @@
 {
   "experiment_name": "week1_stub_vs_gemini",
   "sample_set_version": "v0.1",
-  "timestamp": "2026-03-27T00:00:00+00:00",
-  "commit_sha": "initial",
-  "_note": "This file is updated automatically by compare_cases workflow. Run the workflow manually to populate real results.",
+  "timestamp": "2026-03-27T07:37:14.210745+00:00",
+  "commit_sha": "7e125e3a5e19c7857347a552b5d0975304db2fa4",
   "stub_summary": {
-    "_note": "Populated on first compare_cases workflow run."
+    "total_cases": 5,
+    "counts_by_constraint": {
+      "passed": 2,
+      "warn": 2,
+      "blocked": 1
+    },
+    "counts_by_status": {
+      "ok": 2,
+      "warn": 2,
+      "blocked": 1
+    },
+    "counts_by_backend_used": {
+      "stub": 5
+    },
+    "failure_count": 0,
+    "failures": []
   },
   "gemini_summary": {
-    "_note": "Populated on first compare_cases workflow run."
+    "total_cases": 5,
+    "counts_by_constraint": {
+      "passed": 2,
+      "warn": 2,
+      "blocked": 1
+    },
+    "counts_by_status": {
+      "ok": 2,
+      "warn": 2,
+      "blocked": 1
+    },
+    "counts_by_backend_used": {
+      "gemini": 4,
+      "stub": 1
+    },
+    "failure_count": 0,
+    "failures": []
   }
 }
