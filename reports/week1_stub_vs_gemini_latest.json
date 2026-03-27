@@ -1,0 +1,13 @@
+{
+  "experiment_name": "week1_stub_vs_gemini",
+  "sample_set_version": "v0.1",
+  "timestamp": "2026-03-27T00:00:00+00:00",
+  "commit_sha": "initial",
+  "_note": "This file is updated automatically by compare_cases workflow. Run the workflow manually to populate real results.",
+  "stub_summary": {
+    "_note": "Populated on first compare_cases workflow run."
+  },
+  "gemini_summary": {
+    "_note": "Populated on first compare_cases workflow run."
+  }
+}
