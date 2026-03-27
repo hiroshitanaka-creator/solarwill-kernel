@@ -1,8 +1,8 @@
 {
   "experiment_name": "week1_stub_vs_gemini",
   "sample_set_version": "v0.1",
-  "timestamp": "2026-03-27T07:48:11.638783+00:00",
-  "commit_sha": "30fa3b7f320f57546def697ba9abac28add843c6",
+  "timestamp": "2026-03-27T07:49:50.978579+00:00",
+  "commit_sha": "1127daa7a6ee1f51102f77677ad8ba72e5b7a754",
   "stub_summary": {
     "total_cases": 5,
     "counts_by_constraint": {
