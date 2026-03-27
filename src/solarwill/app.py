@@ -213,9 +213,10 @@ def call_gemini(question: str, constraint_result: ConstraintResult) -> dict[str,
     if not settings.gemini_api_key:
         raise RuntimeError("GEMINI_API_KEY is empty")
 
+    model = settings.gemini_model
     url = (
         f"https://generativelanguage.googleapis.com/v1beta/models/"
-        f"{quote(settings.gemini_model)}:generateContent?key={settings.gemini_api_key}"
+        f"{quote(model)}:generateContent?key={settings.gemini_api_key}"
     )
     payload = {
         "contents": [{"parts": [{"text": json_contract_prompt(question, constraint_result)}]}],
@@ -224,7 +225,16 @@ def call_gemini(question: str, constraint_result: ConstraintResult) -> dict[str,
             "responseMimeType": "application/json",
         },
     }
-    raw = http_json(url, payload, settings.timeout_seconds)
+    try:
+        raw = http_json(url, payload, settings.timeout_seconds)
+    except error.HTTPError as exc:
+        if exc.code == 429:
+            raise RuntimeError(f"Gemini rate-limited (429) model={model!r}") from exc
+        if exc.code == 404:
+            raise RuntimeError(f"Gemini model not found (404) model={model!r}") from exc
+        if exc.code in (401, 403):
+            raise RuntimeError(f"Gemini auth error ({exc.code}) model={model!r}") from exc
+        raise RuntimeError(f"Gemini HTTP {exc.code} model={model!r}: {exc.reason}") from exc
     text = raw["candidates"][0]["content"]["parts"][0]["text"]
     parsed = json.loads(strip_code_fences(text))
     return normalize_payload(parsed, question, constraint_result)
