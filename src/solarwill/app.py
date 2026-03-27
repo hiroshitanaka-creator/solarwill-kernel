@@ -242,7 +242,8 @@ def call_gemini(question: str, constraint_result: ConstraintResult) -> dict[str,
 
 
 def call_ollama(question: str, constraint_result: ConstraintResult) -> dict[str, Any]:
-    settings = get_settings()    url = f"{settings.ollama_base_url}/api/generate"
+    settings = get_settings()
+    url = f"{settings.ollama_base_url}/api/generate"
     payload = {
         "model": settings.ollama_model,
         "prompt": json_contract_prompt(question, constraint_result),
