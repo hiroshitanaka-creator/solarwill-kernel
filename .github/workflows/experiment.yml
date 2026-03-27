@@ -3,6 +3,14 @@ name: Experiment Run
 on:
   workflow_dispatch:
     inputs:
+      backend:
+        description: "実行する backend"
+        required: true
+        default: "gemini"
+        type: choice
+        options:
+          - gemini
+          - stub
       question:
         description: "試したい問いを入れてください"
         required: true
@@ -16,15 +24,14 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  run-gemini:
-    name: run-gemini
+  run-experiment:
+    name: run-${{ inputs.backend }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
     env:
-      SOLARWILL_BACKEND: gemini
+      SOLARWILL_BACKEND: ${{ inputs.backend }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      SOLARWILL_GEMINI_MODEL: models/gemini-2.5-flash
       SOLARWILL_SAVE_TRACE: "true"
       SOLARWILL_TRACE_DIR: artifacts/traces
       SOLARWILL_PROMPT_VERSION: "v0.1"
@@ -38,7 +45,15 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Print selected backend and question
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "backend=${SOLARWILL_BACKEND}"
+          echo "question=${{ inputs.question }}"
+
       - name: Validate Gemini secret is configured
+        if: ${{ inputs.backend == 'gemini' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -68,6 +83,7 @@ jobs:
           cat artifacts/result.json
 
       - name: Fail if Gemini fallback happened
+        if: ${{ inputs.backend == 'gemini' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -94,9 +110,37 @@ jobs:
               raise SystemExit("Gemini fallback detected. See trace.notes above.")
           PY
 
+      - name: Fail if stub run did not stay on stub
+        if: ${{ inputs.backend == 'stub' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          path = Path("artifacts/result.json")
+          payload = json.loads(path.read_text(encoding="utf-8"))
+          trace = payload.get("trace", {})
+
+          requested = trace.get("backend_requested")
+          used = trace.get("backend_used")
+          notes = trace.get("notes", [])
+
+          print("backend_requested =", requested)
+          print("backend_used      =", used)
+          print("notes             =", notes)
+
+          if requested != "stub":
+              raise SystemExit(f"Unexpected backend_requested={requested!r}; expected 'stub'.")
+
+          if used != "stub":
+              raise SystemExit("Stub run unexpectedly used another backend.")
+          PY
+
       - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: solarwill-run-${{ github.run_number }}
+          name: solarwill-${{ inputs.backend }}-run-${{ github.run_number }}
           path: artifacts/
