@@ -85,3 +85,98 @@ jobs:
         with:
           name: compare-${{ matrix.backend }}-${{ github.run_number }}
           path: artifacts/${{ matrix.backend }}/
+
+  summarize:
+    name: summarize-results
+    runs-on: ubuntu-latest
+    needs: compare
+    if: always()
+    timeout-minutes: 10
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download stub artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: compare-stub-${{ github.run_number }}
+          path: dl/stub
+
+      - name: Download gemini artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: compare-gemini-${{ github.run_number }}
+          path: dl/gemini
+
+      - name: Generate latest summary and log
+        shell: bash
+        run: |
+          python - <<'PYEOF'
+          import json, os, pathlib
+          from datetime import datetime, timezone
+
+          def load_result(path):
+              try:
+                  with open(path, encoding="utf-8") as f:
+                      data = json.load(f)
+                  failures = data.get("failures", [])
+                  return {
+                      "total_cases": data.get("total_cases", 0),
+                      "counts_by_constraint": data.get("counts_by_constraint", {}),
+                      "counts_by_status": data.get("counts_by_status", {}),
+                      "counts_by_backend_used": data.get("counts_by_backend_used", {}),
+                      "failure_count": len(failures),
+                      "failures": failures,
+                  }
+              except Exception as e:
+                  return {"error": str(e), "failure_count": -1, "failures": []}
+
+          stub = load_result("dl/stub/case_results.json")
+          gemini = load_result("dl/gemini/case_results.json")
+          commit_sha = os.environ.get("GITHUB_SHA", "unknown")
+
+          report = {
+              "experiment_name": "week1_stub_vs_gemini",
+              "sample_set_version": "v0.1",
+              "timestamp": datetime.now(timezone.utc).isoformat(),
+              "commit_sha": commit_sha,
+              "stub_summary": stub,
+              "gemini_summary": gemini,
+          }
+
+          pathlib.Path("reports").mkdir(exist_ok=True)
+          out = pathlib.Path("reports/week1_stub_vs_gemini_latest.json")
+          out.write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+
+          sep = "=" * 60
+          print(sep)
+          print("WEEK 1: STUB vs GEMINI — SUMMARY")
+          print(sep)
+          print(f"Timestamp : {report['timestamp']}")
+          print(f"Commit    : {commit_sha[:8]}")
+          print()
+          for label, s in [("STUB  ", stub), ("GEMINI", gemini)]:
+              if "error" in s:
+                  print(f"{label}: ERROR loading results — {s['error']}")
+              else:
+                  print(f"{label}: total={s['total_cases']}  failures={s['failure_count']}")
+                  for fail in s["failures"]:
+                      print(f"  FAIL: {fail}")
+          print(sep)
+          PYEOF
+
+      - name: Commit latest summary to repo
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add reports/week1_stub_vs_gemini_latest.json
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "chore(results): update week1 stub vs gemini latest summary [skip ci]"
+            git push origin ${{ github.ref_name }}
+          fi
