@@ -24,6 +24,7 @@ jobs:
     env:
       SOLARWILL_BACKEND: gemini
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      SOLARWILL_GEMINI_MODEL: models/gemini-2.5-flash
       SOLARWILL_SAVE_TRACE: "true"
       SOLARWILL_TRACE_DIR: artifacts/traces
       SOLARWILL_PROMPT_VERSION: "v0.1"

@@ -60,7 +60,7 @@ def get_settings() -> Settings:
         timeout_seconds=max(1, _read_int("SOLARWILL_TIMEOUT_SECONDS", 30)),
         constraint_mode=_read_str("SOLARWILL_CONSTRAINT_MODE", "basic").lower(),
         gemini_api_key=_read_str("GEMINI_API_KEY", ""),
-        gemini_model=_read_str("SOLARWILL_GEMINI_MODEL", "gemini-2.0-flash"),
+        gemini_model=_read_str("SOLARWILL_GEMINI_MODEL", "models/gemini-2.5-flash"),
         ollama_base_url=_read_str("OLLAMA_BASE_URL", "http://localhost:11434").rstrip("/"),
         ollama_model=_read_str("OLLAMA_MODEL", "llama3.1:8b"),
     )
