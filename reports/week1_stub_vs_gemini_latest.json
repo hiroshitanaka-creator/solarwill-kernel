@@ -1,8 +1,8 @@
 {
   "experiment_name": "week1_stub_vs_gemini",
   "sample_set_version": "v0.1",
-  "timestamp": "2026-03-27T07:37:14.210745+00:00",
-  "commit_sha": "7e125e3a5e19c7857347a552b5d0975304db2fa4",
+  "timestamp": "2026-03-27T07:38:27.430762+00:00",
+  "commit_sha": "14e2fd9ac7ae764cf2612f68c1cdcb8a47938cc9",
   "stub_summary": {
     "total_cases": 5,
     "counts_by_constraint": {
@@ -34,10 +34,14 @@
       "blocked": 1
     },
     "counts_by_backend_used": {
-      "gemini": 4,
-      "stub": 1
+      "stub": 4,
+      "gemini": 1
     },
-    "failure_count": 0,
-    "failures": []
+    "failure_count": 3,
+    "failures": [
+      "case_001: backend_requested='gemini' but backend_used='stub'",
+      "case_002: backend_requested='gemini' but backend_used='stub'",
+      "case_004: backend_requested='gemini' but backend_used='stub'"
+    ]
   }
 }
